@@ -1,0 +1,14 @@
+# Build artifacts
+bin/
+
+# Test coverage
+coverage.out
+
+# Editor and OS files
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# Go module sum lock backup
+go.sum.backup

@@ -9,23 +9,12 @@ import (
 	"strings"
 )
 
-func IsValidIPv4(ip string) bool {
-	parts := strings.Split(ip, ".")
-	if len(parts) != 4 {
+func IsValidIPv4(input string) bool {
+	ip, err := netip.ParseAddr(input)
+	if err != nil {
 		return false
 	}
-	for _, part := range parts {
-		if len(part) == 0 || len(part) > 3 {
-			return false
-		}
-		if part[0] == '0' && len(part) > 1 {
-			return false // No leading zeros allowed
-		}
-		if n, err := strconv.Atoi(part); err != nil || n < 0 || n > 255 {
-			return false
-		}
-	}
-	return true
+	return ip.Is4()
 }
 
 func IsValidIPv4Net(ipnet string) bool {
@@ -46,6 +35,14 @@ func IsValidIPv4Net(ipnet string) bool {
 	}
 
 	return true
+}
+
+func IsValidIPv6(input string) bool {
+	ip, err := netip.ParseAddr(input)
+	if err != nil {
+		return false
+	}
+	return ip.Is6()
 }
 
 func StringToIP(input string) (netip.Addr, error) {

@@ -1,4 +1,4 @@
-.PHONY: all build test clean fmt vet
+.PHONY: all build test clean fmt vet coverage
 
 # Default target
 all: fmt test
@@ -18,6 +18,11 @@ fmt:
 vet:
 	@echo "🔍 Running govet..."
 	go vet ./...
+
+coverage:
+	@echo "📊 Generating coverage report..."
+	go test -coverprofile=coverage.out ./...
+	@echo "Coverage written to coverage.out"
 
 clean:
 	@echo "🧹 Cleaning..."
