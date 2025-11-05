@@ -2,6 +2,7 @@ package iowrapper
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +11,9 @@ import (
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
 )
+
+type bytesChunkerFunc func(r io.Reader, chunkSize int, chunkCh chan<- BytesChunk)
+
 
 // Scanner opens the source and returns a bufio.Scanner and an io.Closer.
 // Caller must defer closer.Close().
@@ -206,5 +210,78 @@ func SliceToBytesChunks(r io.Reader, chunkSize int, chunkCh chan<- BytesChunk) {
 
 	if len(buffer) > 0 {
 		flush()
+	}
+}
+
+// SliceToBytesChunks2 reads approximate chunkSize bytes at a time and extends the chunk
+// through the next newline (or EOF) so that chunks always end on line boundaries.
+func SliceToBytesChunks2(r io.Reader, chunkSize int, chunkCh chan<- BytesChunk) {
+	if chunkSize <= 0 {
+		return
+	}
+
+	reader := bufio.NewReader(r)
+	buffer := make([]byte, chunkSize)
+	var (
+		index    int
+		overflow []byte
+	)
+
+	sendChunk := func(data []byte) {
+		if len(data) == 0 {
+			return
+		}
+		out := make([]byte, len(data))
+		copy(out, data)
+		chunkCh <- BytesChunk{Index: index, Data: out}
+		index++
+	}
+
+	for {
+		n := copy(buffer, overflow)
+		overflow = overflow[:0]
+
+		for n < chunkSize {
+			readN, err := reader.Read(buffer[n:])
+			n += readN
+
+			if err != nil {
+				if err != io.EOF {
+					// Unexpected error: emit what we have and abort.
+					sendChunk(buffer[:n])
+				} else if n > 0 {
+					// EOF with remaining data.
+					sendChunk(buffer[:n])
+				}
+				return
+			}
+
+			if n == 0 {
+				continue
+			}
+		}
+
+		// We have at least chunkSize bytes in buffer. Extend to newline if possible.
+		data := buffer[:n]
+		if idx := bytes.LastIndexByte(data, '\n'); idx != -1 {
+			// Keep everything after newline for next chunk.
+			idx++ // include newline
+			sendChunk(data[:idx])
+			if idx < len(data) {
+				overflow = append(overflow[:0], data[idx:]...)
+			}
+		} else {
+			// No newline found; need to keep reading until newline or EOF.
+			line, err := reader.ReadBytes('\n')
+			data = append(data, line...)
+			if err != nil && err != io.EOF {
+				sendChunk(data)
+				return
+			}
+			sendChunk(data)
+			if err == io.EOF {
+				return
+			}
+		}
 	}
 }
