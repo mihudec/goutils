@@ -91,16 +91,16 @@ func TestCreateFakeLogFilesLarge(t *testing.T) {
 	t.Logf("generated %d files in %s", len(files), dir)
 }
 
-type LogRecord struct {
+type FakeLogRecord struct {
 	File  string
 	Index int
 	Data  string
 }
 
-func parseChunkToRecords(chunk FileChunk) ([]LogRecord, error) {
+func parseChunkToFakeLogRecords(chunk FileChunk) ([]FakeLogRecord, error) {
 	base := filepath.Base(chunk.File)
 	lines := bytes.Split(chunk.Chunk.Data, []byte{'\n'})
-	records := make([]LogRecord, 0, len(lines))
+	records := make([]FakeLogRecord, 0, len(lines))
 
 	for _, raw := range lines {
 		if len(raw) == 0 {
@@ -128,7 +128,7 @@ func parseChunkToRecords(chunk FileChunk) ([]LogRecord, error) {
 		}
 
 		data := strings.TrimPrefix(parts[2], "data=")
-		records = append(records, LogRecord{
+		records = append(records, FakeLogRecord{
 			File:  chunk.File,
 			Index: idx,
 			Data:  data,
@@ -150,15 +150,15 @@ func TestPipelineEndToEnd(t *testing.T) {
 
 	fileCh := StartFileProducer(ctx, files)
 	chunkCh, errCh := StartChunkWorkers(ctx, 2, 4*1024*1024, fileCh)
-	processedCh := StartChunkProcessors[LogRecord](ctx, 8, chunkCh, parseChunkToRecords)
+	processedCh := StartChunkProcessors[FakeLogRecord](ctx, 8, chunkCh, parseChunkToFakeLogRecords)
 
 	var mu sync.Mutex
-	collected := make(map[string][]LogRecord)
+	collected := make(map[string][]FakeLogRecord)
 
-	sink := func(file string, items []LogRecord) error {
+	sink := func(file string, items []FakeLogRecord) error {
 		mu.Lock()
 		defer mu.Unlock()
-		cpy := append([]LogRecord(nil), items...)
+		cpy := append([]FakeLogRecord(nil), items...)
 		collected[file] = append(collected[file], cpy...)
 		// for _, item := range items {
 		// 	fmt.Printf("%s %d %s\n", item.File, item.Index, item.Data)

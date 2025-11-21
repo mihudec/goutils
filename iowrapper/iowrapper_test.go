@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-
 func collectChunks(t testing.TB, fn bytesChunkerFunc, input string, chunkSize int) []BytesChunk {
 	t.Helper()
 

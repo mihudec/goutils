@@ -14,7 +14,6 @@ import (
 
 type bytesChunkerFunc func(r io.Reader, chunkSize int, chunkCh chan<- BytesChunk)
 
-
 // Scanner opens the source and returns a bufio.Scanner and an io.Closer.
 // Caller must defer closer.Close().
 func Scanner(source string) (*bufio.Scanner, io.Closer, error) {

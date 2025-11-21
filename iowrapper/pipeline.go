@@ -85,6 +85,7 @@ func StartChunkWorkers(ctx context.Context, workerCount int, chunkSize int, file
 	return out, errCh
 }
 
+// streamFileChunks reads the file at path, splits it into chunks of chunkSize, and sends them to out channel.
 func streamFileChunks(ctx context.Context, path string, chunkSize int, out chan<- FileChunk) error {
 	bufferSize := chunkSize
 	if bufferSize <= 0 {
